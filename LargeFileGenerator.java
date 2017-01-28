@@ -1,8 +1,7 @@
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class LargeFileGenerator {
 
@@ -17,8 +16,13 @@ public class LargeFileGenerator {
         File outputFile = new File(args[4]);
 
         List<String> phrases = new ArrayList<>();
+        Map<String, Integer> phrasesUsage = new HashMap<>();
+
         for (int i = 0; i < numberOfUniquePhrases; i++) {
-            phrases.add(randomString(75 + RANDOM.nextInt(50)));
+            String phrase = randomString(75 + RANDOM.nextInt(50));
+
+            phrases.add(phrase);
+            phrasesUsage.put(phrase, 0);
         }
 
         Integer twentyPercent = (int) (phrases.size() * 0.2);
@@ -31,8 +35,9 @@ public class LargeFileGenerator {
         PrintWriter printWriter = new PrintWriter(outputFile);
 
         for (int i = 0; i < numberOfLines; i++) {
+            String phrase = null;
+
             for (int j = 0; j < numberOfPhrasesPerLine - 1; j++) {
-                String phrase = null;
                 switch (j % 3) {
                     case 0:
                         phrase = groupA.get(RANDOM.nextInt(groupA.size()));
@@ -45,14 +50,33 @@ public class LargeFileGenerator {
                         break;
                 }
 
+                phrasesUsage.put(phrase, phrasesUsage.get(phrase) + 1);
                 printWriter.printf("%s%s", phrase, delimiter);
             }
 
-            printWriter.println(groupA.get(RANDOM.nextInt(groupA.size())));
+            phrase = groupA.get(RANDOM.nextInt(groupA.size()));
+            phrasesUsage.put(phrase, phrasesUsage.get(phrase) + 1);
+
+            printWriter.println(phrase);
             printWriter.flush();
         }
 
         printWriter.close();
+
+        LinkedHashMap<String, Integer> sortedPhrasesUsage = phrasesUsage.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
+
+        List<String> top10phrases = sortedPhrasesUsage.keySet().stream().collect(Collectors.toList()).subList(0, 10);
+        for (String phrase : top10phrases) {
+            System.out.println(String.format("Phrase: [%s]. Count: [%s]", phrase, phrasesUsage.get(phrase)));
+        }
     }
 
     private static String randomString(int length) {
